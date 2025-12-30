@@ -3,7 +3,8 @@ import io from 'socket.io-client';
 import axios from 'axios';
 import './App.css';
 
-const socket = io('http://localhost:5000');
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const socket = io(API_URL);
 
 function App() {
   const [data, setData] = useState([]);
@@ -16,7 +17,6 @@ function App() {
     socket.on('connect', () => setIsConnected(true));
     socket.on('disconnect', () => setIsConnected(false));
 
-    // 1. Handle Updates/Inserts
     socket.on('telemetry_update', (newData) => {
       setData((prevData) => {
         const index = prevData.findIndex(item => item.id === newData.id);
@@ -30,10 +30,8 @@ function App() {
       });
     });
 
-    // 2. Handle Deletions (NEW)
     socket.on('telemetry_delete', (deletedIds) => {
       setData((prevData) => {
-        // Filter out any items whose ID is in the deletedIds array
         return prevData.filter(item => !deletedIds.includes(item.id));
       });
     });
@@ -42,13 +40,13 @@ function App() {
       socket.off('connect');
       socket.off('disconnect');
       socket.off('telemetry_update');
-      socket.off('telemetry_delete'); // Clean up listener
+      socket.off('telemetry_delete');
     };
   }, []);
 
   const fetchInitialData = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/data');
+      const response = await axios.get(`${API_URL}/data`);
       setData(response.data);
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -57,7 +55,7 @@ function App() {
 
   const handleStart = async () => {
     try {
-      await axios.post('http://localhost:5000/start');
+      await axios.post(`${API_URL}/start`);
       setStatus('Running');
     } catch (error) {
       console.error("Start failed:", error);
@@ -66,21 +64,19 @@ function App() {
 
   const handleStop = async () => {
     try {
-      await axios.post('http://localhost:5000/stop');
+      await axios.post(`${API_URL}/stop`);
       setStatus('Stopped');
     } catch (error) {
       console.error("Stop failed:", error);
     }
   };
 
-  // Helper to format ISO Date to clean time
   const formatTime = (isoString) => {
     if (!isoString) return '--';
     const date = new Date(isoString);
     return date.toLocaleTimeString('en-US', { hour12: false });
   };
 
-  // Helper for Status Badge styling
   const getStatusClass = (statusStr) => {
     if (!statusStr) return '';
     const s = statusStr.toLowerCase();
@@ -91,7 +87,6 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* Header Section */}
       <header className="top-bar">
         <div className="logo">
           <span className="logo-icon">📡</span> 
@@ -104,7 +99,6 @@ function App() {
       </header>
 
       <main className="main-content">
-        {/* Control Panel Card */}
         <div className="card control-panel">
           <div className="status-display">
             <p>System Status</p>
@@ -130,7 +124,6 @@ function App() {
           </div>
         </div>
 
-        {/* Data Table Card */}
         <div className="card table-container">
           <div className="table-header">
             <h3>Live Sensor Data</h3>
